@@ -1,0 +1,30 @@
+﻿
+> petshop-pi-2026@1.0.0 test
+> npm run test:backend && npm run test:frontend
+
+
+> petshop-pi-2026@1.0.0 test:backend
+> npm run test --prefix backend
+
+
+> petshop-backend@1.0.0 test
+> npm run build && node --test dist/tests/**/*.test.js
+
+
+> petshop-backend@1.0.0 build
+> tsc -p tsconfig.json
+
+Γû╢ API
+  Γ£ö retorna health com provider ativo (48.4892ms)
+  Γ£ö realiza login com as credenciais demo (9.6242ms)
+  Γ£ö bloqueia login com credenciais invalidas (5.6245ms)
+  Γ£ö bloqueia acesso sem bearer token valido (5.5134ms)
+  Γ£ö retorna dashboard com metricas esperadas (7.0962ms)
+  Γ£ö retorna rotas de listagem com relacoes esperadas (9.2729ms)
+  Γ£ö cria agendamento, atualiza status e envia lembrete (12.2886ms)
+  Γ£ö retira atendimento da fila sem apagar o cadastro (6.8062ms)
+  Γ£ö exclui definitivamente atendimento fora da fila (6.2394ms)
+  Γ£ö atualiza cobranca para paga e nao paga novamente (6.736ms)
+  Γ£ö atualiza metodo de pagamento da cobranca (4.6123ms)
+  Γ£ö retorna 404 ao atualizar cobranca inexistente (3.6439ms)
+  Γ£ö retorna 404 ao atualizar metodo de cobranca inexistente (3.9128ms)

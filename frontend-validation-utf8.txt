@@ -1,0 +1,35 @@
+﻿
+> petshop-pi-2026@1.0.0 test:frontend
+> npm run test --prefix frontend && npm run build --prefix frontend
+
+
+> petshop-frontend@1.0.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mC:/Users/JAPAAH/PetShop P.i 2026/frontend[39m
+
+ [32mΓ£ô[39m src/components/AppointmentTable.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 314[2mms[22m[39m
+ [32mΓ£ô[39m src/components/QuickBookingForm.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 868[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m QuickBookingForm interactions[2m > [22menvia payload manual ao salvar novo atendimento [33m 861[2mms[22m[39m
+ [32mΓ£ô[39m src/App.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1811[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m App finance interactions[2m > [22mrealiza login e libera o painel [33m 740[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[32m14 passed[39m[22m[90m (14)[39m
+[2m   Start at [22m 06:21:03
+[2m   Duration [22m 2.83s[2m (transform 191ms, setup 226ms, collect 573ms, tests 2.99s, environment 1.34s, prepare 304ms)[22m
+
+
+> petshop-frontend@1.0.0 build
+> tsc --noEmit && vite build
+
+[36mvite v6.4.1 [32mbuilding for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 33 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m  0.41 kB[22m[1m[22m[2m Γöé gzip:  0.28 kB[22m
+[2mdist/[22m[35massets/index--hVFCCz8.css  [39m[1m[2m260.86 kB[22m[1m[22m[2m Γöé gzip: 37.22 kB[22m
+[2mdist/[22m[36massets/index-9-EfJgIP.js   [39m[1m[2m178.50 kB[22m[1m[22m[2m Γöé gzip: 54.72 kB[22m
+[32mΓ£ô built in 1.14s[39m

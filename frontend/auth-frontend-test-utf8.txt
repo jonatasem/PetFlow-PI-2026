@@ -1,0 +1,19 @@
+﻿
+> petshop-frontend@1.0.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mC:/Users/JAPAAH/PetShop P.i 2026/frontend[39m
+
+ [32mΓ£ô[39m src/components/AppointmentTable.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 302[2mms[22m[39m
+ [32mΓ£ô[39m src/components/QuickBookingForm.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 963[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m QuickBookingForm interactions[2m > [22menvia payload manual ao salvar novo atendimento [33m 956[2mms[22m[39m
+ [32mΓ£ô[39m src/App.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 2422[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m App finance interactions[2m > [22mrealiza login e libera o painel [33m 701[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m App finance interactions[2m > [22mmostra erro visual quando o login eh invalido [33m 651[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[32m18 passed[39m[22m[90m (18)[39m
+[2m   Start at [22m 06:27:05
+[2m   Duration [22m 3.34s[2m (transform 191ms, setup 204ms, collect 575ms, tests 3.69s, environment 1.09s, prepare 271ms)[22m
+

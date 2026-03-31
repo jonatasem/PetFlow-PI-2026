@@ -1,0 +1,18 @@
+﻿
+> petshop-frontend@1.0.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mC:/Users/JAPAAH/PetShop P.i 2026/frontend[39m
+
+ [32mΓ£ô[39m src/components/AppointmentTable.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 286[2mms[22m[39m
+ [32mΓ£ô[39m src/components/QuickBookingForm.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 931[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m QuickBookingForm interactions[2m > [22menvia payload manual ao salvar novo atendimento [33m 924[2mms[22m[39m
+ [32mΓ£ô[39m src/App.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1706[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m App finance interactions[2m > [22mrealiza login e libera o painel [33m 695[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[32m14 passed[39m[22m[90m (14)[39m
+[2m   Start at [22m 04:04:55
+[2m   Duration [22m 2.58s[2m (transform 183ms, setup 204ms, collect 547ms, tests 2.92s, environment 1.04s, prepare 242ms)[22m
+
