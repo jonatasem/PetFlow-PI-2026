@@ -1,7 +1,7 @@
 import { MongoClient, type Db } from "mongodb";
 import { env } from "../../config/env";
-import type { Appointment, AppointmentStatus, Charge, Customer, Pet, ServiceItem } from "../mockDb";
-import type { DataRepository, NewAppointmentInput } from "../repository";
+import type { Appointment, AppointmentStatus, AuthUser, Charge, Customer, Pet, ServiceItem } from "../mockDb";
+import type { DataRepository, NewAppointmentInput, NewAuthUserInput } from "../repository";
 
 type MongoEntity<T> = T & { _id?: string };
 
@@ -27,6 +27,28 @@ export class MongoProvider implements DataRepository {
     await this.client.connect();
     this.db = this.client.db();
     return this.db;
+  }
+
+  async getAuthUserByEmail(email: string) {
+    const db = await this.getDb();
+    const row = await db.collection<MongoEntity<AuthUser>>("authUsers").findOne({ email });
+    return row ? stripMongoId(row) : null;
+  }
+
+  async createAuthUser(input: NewAuthUserInput) {
+    const db = await this.getDb();
+    const user: AuthUser = {
+      id: `u${Date.now()}`,
+      name: input.name.trim(),
+      email: input.email.trim().toLowerCase(),
+      passwordHash: input.passwordHash,
+      passwordSalt: input.passwordSalt,
+      role: input.role ?? "admin",
+      createdAt: new Date().toISOString()
+    };
+
+    await db.collection<AuthUser>("authUsers").insertOne(user);
+    return user;
   }
 
   async getCustomers() {

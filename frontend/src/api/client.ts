@@ -1,5 +1,5 @@
 import { getStoredAuthSession } from "../auth/session";
-import type { Appointment, AuthSession, Charge, Customer, DashboardData, LoginCredentials, Pet, ServiceItem } from "../types";
+import type { Appointment, AuthSession, Charge, Customer, DashboardData, LoginCredentials, Pet, RegisterCredentials, RegisterResponse, ServiceItem } from "../types";
 
 export interface CreateAppointmentPayload {
   customerId?: string;
@@ -66,6 +66,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function login(payload: LoginCredentials) {
   return request<AuthSession>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function register(payload: RegisterCredentials) {
+  return request<RegisterResponse>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload)
   });

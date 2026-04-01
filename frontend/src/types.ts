@@ -64,6 +64,20 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface RegisterCredentials {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface RegisterResponse {
+  email: string;
+  name: string;
+  role: "admin";
+  createdAt: string;
+  message: string;
+}
+
 export interface AuthSession {
   token: string;
   email: string;

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { LoginCredentials } from "../types";
+import { useMemo, useState } from "react";
+import type { LoginCredentials, RegisterCredentials, RegisterResponse } from "../types";
 
 interface LoginScreenProps {
   errorMessage?: string;
@@ -8,13 +8,15 @@ interface LoginScreenProps {
     description: string;
     title: string;
   } | null;
-  onSubmit: (credentials: LoginCredentials) => Promise<void> | void;
+  onLogin: (credentials: LoginCredentials) => Promise<void> | void;
+  onRegister: (credentials: RegisterCredentials) => Promise<RegisterResponse | void> | RegisterResponse | void;
 }
 
-const demoCredentials: LoginCredentials = {
-  email: "admin@brisapet.com",
-  password: "petshop123"
-};
+type AuthMode = "login" | "register";
+
+interface RegisterFormState extends RegisterCredentials {
+  confirmPassword: string;
+}
 
 const showcaseViews = [
   {
@@ -55,17 +57,56 @@ const showcaseViews = [
   }
 ] as const;
 
-export function LoginScreen({ errorMessage, isSubmitting, notice, onSubmit }: LoginScreenProps) {
-  const [credentials, setCredentials] = useState<LoginCredentials>({
+function getPasswordChecks(password: string) {
+  return [
+    { id: "length", label: "10+ caracteres", valid: password.length >= 10 },
+    { id: "lowercase", label: "1 letra minuscula", valid: /[a-z]/.test(password) },
+    { id: "uppercase", label: "1 letra maiuscula", valid: /[A-Z]/.test(password) },
+    { id: "number", label: "1 numero", valid: /[0-9]/.test(password) },
+    { id: "special", label: "1 simbolo especial", valid: /[^A-Za-z0-9]/.test(password) },
+    { id: "spaces", label: "Sem espacos no inicio ou fim", valid: password.length > 0 && password.trim() === password }
+  ];
+}
+
+export function LoginScreen({ errorMessage, isSubmitting, notice, onLogin, onRegister }: LoginScreenProps) {
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [loginCredentials, setLoginCredentials] = useState<LoginCredentials>({
     email: "",
     password: ""
   });
+  const [registerCredentials, setRegisterCredentials] = useState<RegisterFormState>({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: ""
+  });
   const [activeShowcaseId, setActiveShowcaseId] = useState<(typeof showcaseViews)[number]["id"]>("agenda");
+  const [localError, setLocalError] = useState("");
+  const [submittedMode, setSubmittedMode] = useState<AuthMode | null>(null);
 
   const activeShowcase = showcaseViews.find((item) => item.id === activeShowcaseId) ?? showcaseViews[0];
+  const passwordChecks = useMemo(() => getPasswordChecks(registerCredentials.password), [registerCredentials.password]);
+  const displayError = localError || (submittedMode === mode ? errorMessage ?? "" : "");
 
-  function updateField(field: keyof LoginCredentials, value: string) {
-    setCredentials((current) => ({
+  function switchMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setLocalError("");
+    setSubmittedMode(null);
+  }
+
+  function updateLoginField(field: keyof LoginCredentials, value: string) {
+    setLocalError("");
+    setSubmittedMode(null);
+    setLoginCredentials((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  function updateRegisterField(field: keyof RegisterFormState, value: string) {
+    setLocalError("");
+    setSubmittedMode(null);
+    setRegisterCredentials((current) => ({
       ...current,
       [field]: value
     }));
@@ -73,16 +114,60 @@ export function LoginScreen({ errorMessage, isSubmitting, notice, onSubmit }: Lo
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await onSubmit({
-      email: credentials.email.trim(),
-      password: credentials.password
+
+    if (mode === "login") {
+      setSubmittedMode("login");
+      await onLogin({
+        email: loginCredentials.email.trim(),
+        password: loginCredentials.password
+      });
+      return;
+    }
+
+    const normalizedName = registerCredentials.name.trim().replace(/\s+/g, " ");
+    const normalizedEmail = registerCredentials.email.trim().toLowerCase();
+
+    if (registerCredentials.password !== registerCredentials.confirmPassword) {
+      setSubmittedMode("register");
+      setLocalError("A confirmacao da senha precisa ser igual a senha cadastrada.");
+      return;
+    }
+
+    if (!passwordChecks.every((check) => check.valid)) {
+      setSubmittedMode("register");
+      setLocalError("A senha precisa atender todos os requisitos de seguranca.");
+      return;
+    }
+
+    setSubmittedMode("register");
+    const result = await onRegister({
+      name: normalizedName,
+      email: normalizedEmail,
+      password: registerCredentials.password
     });
+
+    if (!result) {
+      return;
+    }
+
+    setLoginCredentials({
+      email: result.email,
+      password: ""
+    });
+    setRegisterCredentials((current) => ({
+      ...current,
+      password: "",
+      confirmPassword: ""
+    }));
+    setLocalError("");
+    setSubmittedMode(null);
+    setMode("login");
   }
 
   return (
     <section className="login-layout">
       <article className="login-showcase">
-        <div className="hero-brand-mark">Brisa Pet Boutique</div>
+        <div className="hero-brand-mark">PetFlow : Plataforma Inteligente para Gestão de Petshop</div>
         <div className="login-showcase__eyebrow">Acesso protegido</div>
         <h1 className="login-showcase__title">Entre no painel operacional do pet shop.</h1>
         <p className="login-showcase__text">
@@ -150,51 +235,139 @@ export function LoginScreen({ errorMessage, isSubmitting, notice, onSubmit }: Lo
         ) : null}
 
         <div className="login-card__header">
-          <div className="eyebrow">Login</div>
-          <h2 className="login-card__title">Acesso ao painel</h2>
-          <p className="login-card__text">Use as credenciais configuradas no backend ou preencha o acesso demo abaixo.</p>
+          <div className="eyebrow">Seguranca de acesso</div>
+          <h2 className="login-card__title">{mode === "login" ? "Entre com sua conta" : "Crie sua conta administrativa"}</h2>
+          <p className="login-card__text">
+            {mode === "login"
+              ? "Entre com o email e a senha cadastrados para acessar o painel."
+              : "Cadastre o primeiro acesso do painel com senha forte para liberar o login do sistema."}
+          </p>
         </div>
 
-        <button className="login-demo-button" onClick={() => setCredentials(demoCredentials)} type="button">
-          Usar acesso demo
-        </button>
-
-        <div className="login-demo-credentials">
-          <span>Email: admin@brisapet.com</span>
-          <span>Senha: petshop123</span>
+        <div className="login-card__mode-switch" role="tablist" aria-label="Modo de autenticacao">
+          <button
+            aria-selected={mode === "login"}
+            className={`login-card__mode-button${mode === "login" ? " login-card__mode-button--active" : ""}`}
+            onClick={() => switchMode("login")}
+            type="button"
+          >
+            Entrar
+          </button>
+          <button
+            aria-selected={mode === "register"}
+            className={`login-card__mode-button${mode === "register" ? " login-card__mode-button--active" : ""}`}
+            onClick={() => switchMode("register")}
+            type="button"
+          >
+            Cadastrar
+          </button>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <label className="login-form__field" htmlFor="login-email">
-            <span>Email</span>
-            <input
-              autoComplete="email"
-              className="login-form__control"
-              id="login-email"
-              onChange={(event) => updateField("email", event.target.value)}
-              placeholder="admin@brisapet.com"
-              type="email"
-              value={credentials.email}
-            />
-          </label>
+          {mode === "register" ? (
+            <>
+              <label className="login-form__field" htmlFor="register-name">
+                <span>Nome completo</span>
+                <input
+                  autoComplete="name"
+                  className="login-form__control"
+                  id="register-name"
+                  onChange={(event) => updateRegisterField("name", event.target.value)}
+                  placeholder="Ex.: Equipe administrativa"
+                  type="text"
+                  value={registerCredentials.name}
+                />
+              </label>
 
-          <label className="login-form__field" htmlFor="login-password">
-            <span>Senha</span>
-            <input
-              autoComplete="current-password"
-              className="login-form__control"
-              id="login-password"
-              onChange={(event) => updateField("password", event.target.value)}
-              placeholder="Digite sua senha"
-              type="password"
-              value={credentials.password}
-            />
-          </label>
+              <label className="login-form__field" htmlFor="register-email">
+                <span>Email</span>
+                <input
+                  autoComplete="email"
+                  className="login-form__control"
+                  id="register-email"
+                  onChange={(event) => updateRegisterField("email", event.target.value)}
+                  placeholder="Ex.: acesso@clinicadospets.com.br"
+                  type="email"
+                  value={registerCredentials.email}
+                />
+              </label>
 
-          {errorMessage ? <div className="login-form__error">{errorMessage}</div> : null}
+              <label className="login-form__field" htmlFor="register-password">
+                <span>Senha forte</span>
+                <input
+                  autoComplete="new-password"
+                  className="login-form__control"
+                  id="register-password"
+                  onChange={(event) => updateRegisterField("password", event.target.value)}
+                  placeholder="Ex.: MeuPet@2026!"
+                  type="password"
+                  value={registerCredentials.password}
+                />
+              </label>
+
+              <div className="login-password-rules" aria-live="polite">
+                {passwordChecks.map((check) => (
+                  <div className={`login-password-rule${check.valid ? " login-password-rule--ok" : ""}`} key={check.id}>
+                    {check.label}
+                  </div>
+                ))}
+              </div>
+
+              <label className="login-form__field" htmlFor="register-confirm-password">
+                <span>Confirmar senha</span>
+                <input
+                  autoComplete="new-password"
+                  className="login-form__control"
+                  id="register-confirm-password"
+                  onChange={(event) => updateRegisterField("confirmPassword", event.target.value)}
+                  placeholder="Repita a senha criada"
+                  type="password"
+                  value={registerCredentials.confirmPassword}
+                />
+              </label>
+
+              <div className="login-card__security">
+                <div className="login-card__security-item">Sua senha fica protegida no sistema.</div>
+                <div className="login-card__security-item">Cada email pode ser usado em apenas uma conta.</div>
+                <div className="login-card__security-item">Depois de cadastrar, e so entrar com seu email e senha.</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="login-form__field" htmlFor="login-email">
+                <span>Email</span>
+                <input
+                  autoComplete="email"
+                  className="login-form__control"
+                  id="login-email"
+                  onChange={(event) => updateLoginField("email", event.target.value)}
+                  placeholder="Ex.: acesso@clinicadospets.com.br"
+                  type="email"
+                  value={loginCredentials.email}
+                />
+              </label>
+
+              <label className="login-form__field" htmlFor="login-password">
+                <span>Senha</span>
+                <input
+                  autoComplete="current-password"
+                  className="login-form__control"
+                  id="login-password"
+                  onChange={(event) => updateLoginField("password", event.target.value)}
+                  placeholder="Digite sua senha"
+                  type="password"
+                  value={loginCredentials.password}
+                />
+              </label>
+
+              <div className="login-card__hint">Use a aba Cadastrar para criar seu acesso.</div>
+            </>
+          )}
+
+          {displayError ? <div className="login-form__error">{displayError}</div> : null}
 
           <button className="login-form__submit" disabled={isSubmitting} type="submit">
-            {isSubmitting ? "Entrando..." : "Entrar no painel"}
+            {isSubmitting ? (mode === "login" ? "Entrando..." : "Cadastrando...") : mode === "login" ? "Entrar no painel" : "Criar conta segura"}
           </button>
         </form>
       </article>

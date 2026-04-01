@@ -42,6 +42,16 @@ export interface Charge {
   method: "pix" | "cartao" | "dinheiro";
 }
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  passwordSalt: string;
+  role: "admin";
+  createdAt: string;
+}
+
 const seedCustomers: Customer[] = [
   {
     id: "c1",
@@ -202,6 +212,8 @@ const seedCharges: Charge[] = [
   }
 ];
 
+const seedAuthUsers: AuthUser[] = [];
+
 export const customers: Customer[] = structuredClone(seedCustomers);
 
 export const pets: Pet[] = structuredClone(seedPets);
@@ -212,10 +224,13 @@ export const appointments: Appointment[] = structuredClone(seedAppointments);
 
 export const charges: Charge[] = structuredClone(seedCharges);
 
+export const authUsers: AuthUser[] = structuredClone(seedAuthUsers);
+
 export function resetMockDb() {
   customers.splice(0, customers.length, ...structuredClone(seedCustomers));
   pets.splice(0, pets.length, ...structuredClone(seedPets));
   services.splice(0, services.length, ...structuredClone(seedServices));
   appointments.splice(0, appointments.length, ...structuredClone(seedAppointments));
   charges.splice(0, charges.length, ...structuredClone(seedCharges));
+  authUsers.splice(0, authUsers.length, ...structuredClone(seedAuthUsers));
 }

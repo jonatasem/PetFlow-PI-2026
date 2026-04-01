@@ -1,4 +1,4 @@
-import type { Appointment, AppointmentStatus, Charge, Customer, Pet, ServiceItem } from "./mockDb";
+import type { Appointment, AppointmentStatus, AuthUser, Charge, Customer, Pet, ServiceItem } from "./mockDb";
 
 export interface NewAppointmentInput {
   customerId?: string;
@@ -16,7 +16,17 @@ export interface NewAppointmentInput {
   startsAt: string;
 }
 
+export interface NewAuthUserInput {
+  name: string;
+  email: string;
+  passwordHash: string;
+  passwordSalt: string;
+  role?: "admin";
+}
+
 export interface DataRepository {
+  getAuthUserByEmail(email: string): Promise<AuthUser | null>;
+  createAuthUser(input: NewAuthUserInput): Promise<AuthUser>;
   getCustomers(): Promise<Customer[]>;
   getPets(): Promise<Pet[]>;
   getServices(): Promise<ServiceItem[]>;

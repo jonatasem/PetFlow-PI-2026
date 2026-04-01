@@ -10,6 +10,12 @@ let server: Server;
 let baseUrl: string;
 let authHeaders: HeadersInit;
 
+const defaultUser = {
+  name: "PetFlow Admin",
+  email: "admin@petflow.com",
+  password: "PetFlow@2026"
+};
+
 beforeEach(async () => {
   resetMockDb();
   server = app.listen(0);
@@ -17,14 +23,22 @@ beforeEach(async () => {
   const address = server.address() as AddressInfo;
   baseUrl = `http://127.0.0.1:${address.port}/api`;
 
+  await request("/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(defaultUser)
+  });
+
   const loginResponse = await request("/auth/login", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      email: "admin@brisapet.com",
-      password: "petshop123"
+      email: defaultUser.email,
+      password: defaultUser.password
     })
   });
 
@@ -75,21 +89,71 @@ describe("API", () => {
     assert.equal(body.databaseProvider, "memory");
   });
 
-  it("realiza login com as credenciais demo", async () => {
+  it("cadastra uma nova conta com senha forte", async () => {
+    const { response, body } = await request("/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: "Maria Gestora",
+        email: "maria@petflow.com",
+        password: "Maria@2026Segura"
+      })
+    });
+
+    assert.equal(response.status, 201);
+    assert.equal(body.email, "maria@petflow.com");
+    assert.equal(body.name, "Maria Gestora");
+    assert.equal(body.role, "admin");
+  });
+
+  it("bloqueia cadastro com email ja utilizado", async () => {
+    const { response, body } = await request("/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(defaultUser)
+    });
+
+    assert.equal(response.status, 409);
+    assert.equal(body.message, "Ja existe uma conta cadastrada com este email.");
+  });
+
+  it("bloqueia cadastro com senha fraca", async () => {
+    const { response, body } = await request("/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: "Joao Fraco",
+        email: "joao@petflow.com",
+        password: "123456"
+      })
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, "Dados invalidos na requisicao.");
+    assert.ok(Array.isArray(body.issues));
+  });
+
+  it("realiza login com usuario cadastrado", async () => {
     const { response, body } = await request("/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        email: "admin@brisapet.com",
-        password: "petshop123"
+        email: defaultUser.email,
+        password: defaultUser.password
       })
     });
 
     assert.equal(response.status, 200);
-    assert.equal(body.email, "admin@brisapet.com");
-    assert.equal(body.name, "Gestor Brisa Pet");
+    assert.equal(body.email, defaultUser.email);
+    assert.equal(body.name, defaultUser.name);
     assert.equal(body.role, "admin");
     assert.ok(body.token);
   });
@@ -101,7 +165,7 @@ describe("API", () => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        email: "admin@brisapet.com",
+        email: defaultUser.email,
         password: "senha-errada"
       })
     });

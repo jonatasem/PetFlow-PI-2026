@@ -1,5 +1,9 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 import { env } from "../config/env";
+
+const scrypt = promisify(scryptCallback);
+const PASSWORD_KEY_LENGTH = 64;
 
 export interface AuthTokenPayload {
   email: string;
@@ -19,6 +23,35 @@ function fromBase64Url<T>(value: string) {
 
 function signValue(value: string) {
   return createHmac("sha256", env.AUTH_SECRET).update(value).digest("base64url");
+}
+
+async function derivePasswordKey(password: string, passwordSalt: string) {
+  return await scrypt(password, `${passwordSalt}:${env.AUTH_SECRET}`, PASSWORD_KEY_LENGTH) as Buffer;
+}
+
+export async function hashPassword(password: string) {
+  const passwordSalt = randomBytes(16).toString("base64url");
+  const derivedKey = await derivePasswordKey(password, passwordSalt);
+
+  return {
+    passwordHash: derivedKey.toString("base64url"),
+    passwordSalt
+  };
+}
+
+export async function verifyPassword(password: string, passwordHash: string, passwordSalt: string) {
+  try {
+    const derivedKey = await derivePasswordKey(password, passwordSalt);
+    const storedKey = Buffer.from(passwordHash, "base64url");
+
+    if (storedKey.length !== derivedKey.length) {
+      return false;
+    }
+
+    return timingSafeEqual(storedKey, derivedKey);
+  } catch {
+    return false;
+  }
 }
 
 export function createAuthToken(payload: Omit<AuthTokenPayload, "iat" | "exp">) {

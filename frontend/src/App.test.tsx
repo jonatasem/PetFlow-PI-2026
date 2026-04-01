@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import { AUTH_STORAGE_KEY } from "./auth/session";
-import type { Appointment, AuthSession, Charge, Customer, DashboardData, Pet, ServiceItem } from "./types";
+import type { Appointment, AuthSession, Charge, Customer, DashboardData, Pet, RegisterResponse, ServiceItem } from "./types";
 import * as api from "./api/client";
 
 vi.mock("./api/client", async () => {
@@ -18,6 +18,7 @@ vi.mock("./api/client", async () => {
     getPets: vi.fn(),
     getServices: vi.fn(),
     login: vi.fn(),
+    register: vi.fn(),
     createAppointment: vi.fn(),
     deleteAppointment: vi.fn(),
     removeAppointmentFromQueue: vi.fn(),
@@ -96,10 +97,17 @@ const mockCharges: Charge[] = [
 const mockCustomers: Customer[] = [];
 const mockSession: AuthSession = {
   token: "demo-token",
-  email: "admin@brisapet.com",
-  name: "Gestor Brisa Pet",
+  email: "admin@petflow.com",
+  name: "PetFlow Admin",
   role: "admin",
   expiresAt: "2026-03-29T12:00:00.000Z"
+};
+const mockRegisterResponse: RegisterResponse = {
+  email: "admin@petflow.com",
+  name: "PetFlow Admin",
+  role: "admin",
+  createdAt: "2026-03-28T12:00:00.000Z",
+  message: "Cadastro realizado com sucesso. Faca login para continuar."
 };
 const mockPets: Pet[] = [
   {
@@ -121,6 +129,7 @@ const mockServices: ServiceItem[] = [];
 
 function setupApiMocks() {
   vi.mocked(api.login).mockResolvedValue(mockSession);
+  vi.mocked(api.register).mockResolvedValue(mockRegisterResponse);
   vi.mocked(api.getDashboard).mockResolvedValue(mockDashboard);
   vi.mocked(api.getAppointments).mockResolvedValue(mockAppointments);
   vi.mocked(api.getCharges).mockResolvedValue(mockCharges);
@@ -152,20 +161,45 @@ describe("App finance interactions", () => {
 
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Acesso ao painel" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Entre com sua conta" })).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Email"), "admin@brisapet.com");
-    await user.type(screen.getByLabelText("Senha"), "petshop123");
+    await user.type(screen.getByLabelText("Email"), "admin@petflow.com");
+    await user.type(screen.getByLabelText("Senha"), "PetFlow@2026");
     await user.click(screen.getByRole("button", { name: "Entrar no painel" }));
 
     await waitFor(() => {
       expect(api.login).toHaveBeenCalledWith({
-        email: "admin@brisapet.com",
-        password: "petshop123"
+        email: "admin@petflow.com",
+        password: "PetFlow@2026"
       });
     });
 
     expect(await screen.findByText("Pagamentos pendentes")).toBeInTheDocument();
+  });
+
+  it("cadastra conta e volta para a aba de login", async () => {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Cadastrar" }));
+    await user.type(screen.getByLabelText("Nome completo"), "PetFlow Admin");
+    await user.type(screen.getByLabelText("Email"), "admin@petflow.com");
+    await user.type(screen.getByLabelText("Senha forte"), "PetFlow@2026");
+    await user.type(screen.getByLabelText("Confirmar senha"), "PetFlow@2026");
+    await user.click(screen.getByRole("button", { name: "Criar conta segura" }));
+
+    await waitFor(() => {
+      expect(api.register).toHaveBeenCalledWith({
+        name: "PetFlow Admin",
+        email: "admin@petflow.com",
+        password: "PetFlow@2026"
+      });
+    });
+
+    expect(await screen.findByText(/Cadastro realizado com sucesso/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Entre com sua conta" })).toBeInTheDocument();
   });
 
   it("mostra erro visual quando o login eh invalido", async () => {
@@ -175,12 +209,12 @@ describe("App finance interactions", () => {
 
     render(<App />);
 
-    await user.type(screen.getByLabelText("Email"), "admin@brisapet.com");
+    await user.type(screen.getByLabelText("Email"), "admin@petflow.com");
     await user.type(screen.getByLabelText("Senha"), "senha-errada");
     await user.click(screen.getByRole("button", { name: "Entrar no painel" }));
 
     expect(await screen.findByText("Email ou senha invalidos.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Acesso ao painel" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Entre com sua conta" })).toBeInTheDocument();
   });
 
   it("faz logout e volta para a tela de login", async () => {
@@ -190,7 +224,7 @@ describe("App finance interactions", () => {
     await screen.findByText("Pagamentos pendentes");
     await user.click(screen.getByRole("button", { name: "Sair do painel" }));
 
-    expect(screen.getByRole("heading", { name: "Acesso ao painel" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Entre com sua conta" })).toBeInTheDocument();
     expect(window.localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
   });
 
@@ -208,7 +242,7 @@ describe("App finance interactions", () => {
 
     expect(await screen.findByText("Sessao expirada")).toBeInTheDocument();
     expect(screen.getByText("Sessao expirada. Faca login novamente.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Acesso ao painel" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Entre com sua conta" })).toBeInTheDocument();
     expect(window.localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
   });
 

@@ -1,8 +1,8 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { env } from "../../config/env";
-import type { Appointment, AppointmentStatus, Charge, Customer, Pet, ServiceItem } from "../mockDb";
-import type { DataRepository, NewAppointmentInput } from "../repository";
+import type { Appointment, AppointmentStatus, AuthUser, Charge, Customer, Pet, ServiceItem } from "../mockDb";
+import type { DataRepository, NewAppointmentInput, NewAuthUserInput } from "../repository";
 
 export class FirebaseProvider implements DataRepository {
   private readonly db: Firestore;
@@ -23,6 +23,26 @@ export class FirebaseProvider implements DataRepository {
       });
 
     this.db = getFirestore(app);
+  }
+
+  async getAuthUserByEmail(email: string) {
+    const snapshot = await this.db.collection("authUsers").where("email", "==", email).limit(1).get();
+    return snapshot.empty ? null : (snapshot.docs[0]?.data() as AuthUser);
+  }
+
+  async createAuthUser(input: NewAuthUserInput) {
+    const user: AuthUser = {
+      id: `u${Date.now()}`,
+      name: input.name.trim(),
+      email: input.email.trim().toLowerCase(),
+      passwordHash: input.passwordHash,
+      passwordSalt: input.passwordSalt,
+      role: input.role ?? "admin",
+      createdAt: new Date().toISOString()
+    };
+
+    await this.db.collection("authUsers").doc(user.id).set(user);
+    return user;
   }
 
   async getCustomers() {

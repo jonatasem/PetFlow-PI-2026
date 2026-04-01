@@ -1,3 +1,13 @@
+CREATE TABLE auth_users (
+  id VARCHAR(32) PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(160) NOT NULL UNIQUE,
+  passwordHash VARCHAR(255) NOT NULL,
+  passwordSalt VARCHAR(255) NOT NULL,
+  role ENUM('admin') NOT NULL DEFAULT 'admin',
+  createdAt DATETIME NOT NULL
+);
+
 CREATE TABLE customers (
   id VARCHAR(32) PRIMARY KEY,
   name VARCHAR(120) NOT NULL,

@@ -1,11 +1,20 @@
 import { createPool, type Pool, type RowDataPacket } from "mysql2/promise";
 import { env } from "../../config/env";
-import type { Appointment, AppointmentStatus, Charge, Customer, Pet, ServiceItem } from "../mockDb";
-import type { DataRepository, NewAppointmentInput } from "../repository";
+import type { Appointment, AppointmentStatus, AuthUser, Charge, Customer, Pet, ServiceItem } from "../mockDb";
+import type { DataRepository, NewAppointmentInput, NewAuthUserInput } from "../repository";
 
 type CustomerRow = RowDataPacket & Customer;
 type PetRow = RowDataPacket & Pet;
 type ServiceRow = RowDataPacket & ServiceItem;
+type AuthUserRow = RowDataPacket & {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  passwordSalt: string;
+  role: "admin";
+  createdAt: string | Date;
+};
 type AppointmentRow = RowDataPacket & {
   id: string;
   customerId: string;
@@ -47,6 +56,18 @@ function normalizeCharge(row: ChargeRow): Charge {
   };
 }
 
+function normalizeAuthUser(row: AuthUserRow): AuthUser {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    passwordHash: row.passwordHash,
+    passwordSalt: row.passwordSalt,
+    role: row.role,
+    createdAt: new Date(row.createdAt).toISOString()
+  };
+}
+
 export class MySqlProvider implements DataRepository {
   private readonly pool: Pool;
 
@@ -59,6 +80,34 @@ export class MySqlProvider implements DataRepository {
       uri: env.MYSQL_URL,
       connectionLimit: 10
     });
+  }
+
+  async getAuthUserByEmail(email: string) {
+    const [rows] = await this.pool.query<AuthUserRow[]>(
+      "SELECT id, name, email, passwordHash, passwordSalt, role, createdAt FROM auth_users WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    return rows[0] ? normalizeAuthUser(rows[0]) : null;
+  }
+
+  async createAuthUser(input: NewAuthUserInput) {
+    const user: AuthUser = {
+      id: `u${Date.now()}`,
+      name: input.name.trim(),
+      email: input.email.trim().toLowerCase(),
+      passwordHash: input.passwordHash,
+      passwordSalt: input.passwordSalt,
+      role: input.role ?? "admin",
+      createdAt: new Date().toISOString()
+    };
+
+    await this.pool.query(
+      "INSERT INTO auth_users (id, name, email, passwordHash, passwordSalt, role, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [user.id, user.name, user.email, user.passwordHash, user.passwordSalt, user.role, new Date(user.createdAt)]
+    );
+
+    return user;
   }
 
   async getCustomers() {

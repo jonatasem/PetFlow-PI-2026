@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { ApiError, createAppointment, deleteAppointment, getAppointments, getCharges, getCustomers, getDashboard, getPets, getServices, login, removeAppointmentFromQueue, restoreAppointmentToQueue, sendReminder, updateAppointmentStatus, updateChargePaymentMethod, updateChargePaymentStatus, type CreateAppointmentPayload } from "./api/client";
+import { ApiError, createAppointment, deleteAppointment, getAppointments, getCharges, getCustomers, getDashboard, getPets, getServices, login, register, removeAppointmentFromQueue, restoreAppointmentToQueue, sendReminder, updateAppointmentStatus, updateChargePaymentMethod, updateChargePaymentStatus, type CreateAppointmentPayload } from "./api/client";
 import { clearStoredAuthSession, getStoredAuthSession, setStoredAuthSession } from "./auth/session";
 import { LoginScreen } from "./components/LoginScreen";
 import { AppointmentTable } from "./components/AppointmentTable";
 import { MetricCard } from "./components/MetricCard";
 import { QuickBookingForm } from "./components/QuickBookingForm";
-import type { Appointment, AuthSession, Charge, Customer, DashboardData, LoginCredentials, Pet, ServiceItem } from "./types";
+import type { Appointment, AuthSession, Charge, Customer, DashboardData, LoginCredentials, Pet, RegisterCredentials, RegisterResponse, ServiceItem } from "./types";
 
 function currency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -134,6 +134,27 @@ export default function App() {
       setFeedback(`Login realizado com sucesso. Bem-vindo, ${session.name}.`);
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "Nao foi possivel realizar o login.");
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }
+
+  async function handleRegister(credentials: RegisterCredentials): Promise<RegisterResponse | void> {
+    setIsAuthenticating(true);
+    setAuthError("");
+    setAuthNotice(null);
+
+    try {
+      const result = await register(credentials);
+      setAuthNotice({
+        title: "Cadastro concluido",
+        description: `${result.message} Email liberado: ${result.email}.`
+      });
+      setFeedback(`Conta criada com sucesso para ${result.name}.`);
+      return result;
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Nao foi possivel concluir o cadastro.");
+      return undefined;
     } finally {
       setIsAuthenticating(false);
     }
@@ -311,7 +332,13 @@ export default function App() {
     return (
       <div className="app-shell">
         <div className="app-shell__inner app-shell__inner--auth">
-          <LoginScreen errorMessage={authError} isSubmitting={isAuthenticating} notice={authNotice} onSubmit={handleLogin} />
+          <LoginScreen
+            errorMessage={authError}
+            isSubmitting={isAuthenticating}
+            notice={authNotice}
+            onLogin={handleLogin}
+            onRegister={handleRegister}
+          />
         </div>
       </div>
     );
@@ -334,12 +361,12 @@ export default function App() {
         <section className="hero-panel">
           <div className="hero-panel__copy">
             <div className="hero-brand-lockup">
-              <div className="hero-brand-mark">Brisa Pet Boutique</div>
-              <div className="hero-brand-note">Atendimento premium para rotina, agenda e caixa do pet shop</div>
+              <div className="hero-brand-mark">PetFlow</div>
+              <div className="hero-brand-note">Plataforma Inteligente para Gestão de Petshop</div>
             </div>
             <h1 className="hero-panel__title">
-              <span className="hero-panel__title-brand">Brisa Pet Boutique</span>
-              <span className="hero-panel__title-accent"> mais bonita, destacada e profissional para a operacao do dia.</span>
+              <span className="hero-panel__title-brand">PetFlow</span>
+              <span className="hero-panel__title-accent"> para uma operação mais clara, conectada e profissional no dia a dia.</span>
             </h1>
             <p className="hero-panel__text">
               Centralize agenda, atendimento e acompanhamento financeiro em uma experiencia visual mais discreta, executiva e preparada para a rotina do pet shop.

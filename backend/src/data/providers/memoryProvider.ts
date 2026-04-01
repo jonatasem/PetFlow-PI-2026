@@ -1,5 +1,5 @@
-import { appointments, charges, customers, pets, services, type Appointment, type Customer, type Pet, type ServiceItem } from "../mockDb";
-import type { DataRepository, NewAppointmentInput } from "../repository";
+import { appointments, authUsers, charges, customers, pets, services, type Appointment, type AuthUser, type Customer, type Pet, type ServiceItem } from "../mockDb";
+import type { DataRepository, NewAppointmentInput, NewAuthUserInput } from "../repository";
 
 function nextEntityId(prefix: string, currentIds: string[]) {
   const maxValue = currentIds.reduce((highest, id) => {
@@ -15,6 +15,25 @@ function normalizeText(value?: string) {
 }
 
 export class MemoryProvider implements DataRepository {
+  async getAuthUserByEmail(email: string) {
+    return structuredClone(authUsers.find((user) => normalizeText(user.email) === normalizeText(email)) ?? null);
+  }
+
+  async createAuthUser(input: NewAuthUserInput) {
+    const user: AuthUser = {
+      id: nextEntityId("u", authUsers.map((item) => item.id)),
+      name: input.name.trim(),
+      email: input.email.trim().toLowerCase(),
+      passwordHash: input.passwordHash,
+      passwordSalt: input.passwordSalt,
+      role: input.role ?? "admin",
+      createdAt: new Date().toISOString()
+    };
+
+    authUsers.push(user);
+    return structuredClone(user);
+  }
+
   async getCustomers() {
     return structuredClone(customers);
   }
