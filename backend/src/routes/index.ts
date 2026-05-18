@@ -219,7 +219,8 @@ router.post("/appointments", asyncHandler(async (request, response) => {
 }));
 
 router.delete("/appointments/:id", asyncHandler(async (request, response) => {
-  const deleted = await getRepository().deleteAppointment(request.params.id);
+  const id = request.params.id as string;
+  const deleted = await getRepository().deleteAppointment(id);
 
   if (!deleted) {
     response.status(404).json({ message: "Agendamento nao encontrado." });
@@ -230,7 +231,8 @@ router.delete("/appointments/:id", asyncHandler(async (request, response) => {
 }));
 
 router.patch("/appointments/:id/remove-from-queue", asyncHandler(async (request, response) => {
-  const hidden = await getRepository().removeAppointmentFromQueue(request.params.id);
+  const id = request.params.id as string;
+  const hidden = await getRepository().removeAppointmentFromQueue(id);
 
   if (!hidden) {
     response.status(404).json({ message: "Agendamento nao encontrado." });
@@ -241,7 +243,8 @@ router.patch("/appointments/:id/remove-from-queue", asyncHandler(async (request,
 }));
 
 router.patch("/appointments/:id/restore-to-queue", asyncHandler(async (request, response) => {
-  const restored = await getRepository().restoreAppointmentToQueue(request.params.id);
+  const id = request.params.id as string;
+  const restored = await getRepository().restoreAppointmentToQueue(id);
 
   if (!restored) {
     response.status(404).json({ message: "Agendamento nao encontrado." });
@@ -252,8 +255,9 @@ router.patch("/appointments/:id/restore-to-queue", asyncHandler(async (request, 
 }));
 
 router.patch("/appointments/:id/status", asyncHandler(async (request, response) => {
+  const id = request.params.id as string;
   const payload = statusSchema.parse(request.body);
-  const appointment = await getRepository().updateAppointmentStatus(request.params.id, payload.status);
+  const appointment = await getRepository().updateAppointmentStatus(id, payload.status);
 
   if (!appointment) {
     response.status(404).json({ message: "Agendamento nao encontrado." });
@@ -275,8 +279,9 @@ router.get("/charges", asyncHandler(async (_request, response) => {
 }));
 
 router.patch("/charges/:id/payment-status", asyncHandler(async (request, response) => {
+  const id = request.params.id as string;
   const payload = chargePaymentSchema.parse(request.body);
-  const charge = await getRepository().updateChargePaymentStatus(request.params.id, payload.paid);
+  const charge = await getRepository().updateChargePaymentStatus(id, payload.paid);
 
   if (!charge) {
     response.status(404).json({ message: "Cobranca nao encontrada." });
@@ -287,8 +292,9 @@ router.patch("/charges/:id/payment-status", asyncHandler(async (request, respons
 }));
 
 router.patch("/charges/:id/payment-method", asyncHandler(async (request, response) => {
+  const id = request.params.id as string;
   const payload = chargeMethodSchema.parse(request.body);
-  const charge = await getRepository().updateChargePaymentMethod(request.params.id, payload.method);
+  const charge = await getRepository().updateChargePaymentMethod(id, payload.method);
 
   if (!charge) {
     response.status(404).json({ message: "Cobranca nao encontrada." });
@@ -299,7 +305,8 @@ router.patch("/charges/:id/payment-method", asyncHandler(async (request, respons
 }));
 
 router.post("/notifications/reminder/:appointmentId", asyncHandler(async (request, response) => {
-  const result = await sendReminder(request.params.appointmentId);
+  const appointmentId = request.params.appointmentId as string;
+  const result = await sendReminder(appointmentId);
   response.status(result.ok ? 200 : 404).json(result);
 }));
 
