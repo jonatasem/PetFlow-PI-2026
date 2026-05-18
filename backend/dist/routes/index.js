@@ -184,7 +184,8 @@ router.post("/appointments", asyncHandler(async (request, response) => {
     response.status(201).json(appointment);
 }));
 router.delete("/appointments/:id", asyncHandler(async (request, response) => {
-    const deleted = await (0, database_1.getRepository)().deleteAppointment(request.params.id);
+    const id = request.params.id;
+    const deleted = await (0, database_1.getRepository)().deleteAppointment(id);
     if (!deleted) {
         response.status(404).json({ message: "Agendamento nao encontrado." });
         return;
@@ -192,7 +193,8 @@ router.delete("/appointments/:id", asyncHandler(async (request, response) => {
     response.status(204).send();
 }));
 router.patch("/appointments/:id/remove-from-queue", asyncHandler(async (request, response) => {
-    const hidden = await (0, database_1.getRepository)().removeAppointmentFromQueue(request.params.id);
+    const id = request.params.id;
+    const hidden = await (0, database_1.getRepository)().removeAppointmentFromQueue(id);
     if (!hidden) {
         response.status(404).json({ message: "Agendamento nao encontrado." });
         return;
@@ -200,7 +202,8 @@ router.patch("/appointments/:id/remove-from-queue", asyncHandler(async (request,
     response.status(204).send();
 }));
 router.patch("/appointments/:id/restore-to-queue", asyncHandler(async (request, response) => {
-    const restored = await (0, database_1.getRepository)().restoreAppointmentToQueue(request.params.id);
+    const id = request.params.id;
+    const restored = await (0, database_1.getRepository)().restoreAppointmentToQueue(id);
     if (!restored) {
         response.status(404).json({ message: "Agendamento nao encontrado." });
         return;
@@ -208,8 +211,9 @@ router.patch("/appointments/:id/restore-to-queue", asyncHandler(async (request, 
     response.status(204).send();
 }));
 router.patch("/appointments/:id/status", asyncHandler(async (request, response) => {
+    const id = request.params.id;
     const payload = statusSchema.parse(request.body);
-    const appointment = await (0, database_1.getRepository)().updateAppointmentStatus(request.params.id, payload.status);
+    const appointment = await (0, database_1.getRepository)().updateAppointmentStatus(id, payload.status);
     if (!appointment) {
         response.status(404).json({ message: "Agendamento nao encontrado." });
         return;
@@ -225,8 +229,9 @@ router.get("/charges", asyncHandler(async (_request, response) => {
     })));
 }));
 router.patch("/charges/:id/payment-status", asyncHandler(async (request, response) => {
+    const id = request.params.id;
     const payload = chargePaymentSchema.parse(request.body);
-    const charge = await (0, database_1.getRepository)().updateChargePaymentStatus(request.params.id, payload.paid);
+    const charge = await (0, database_1.getRepository)().updateChargePaymentStatus(id, payload.paid);
     if (!charge) {
         response.status(404).json({ message: "Cobranca nao encontrada." });
         return;
@@ -234,8 +239,9 @@ router.patch("/charges/:id/payment-status", asyncHandler(async (request, respons
     response.json(charge);
 }));
 router.patch("/charges/:id/payment-method", asyncHandler(async (request, response) => {
+    const id = request.params.id;
     const payload = chargeMethodSchema.parse(request.body);
-    const charge = await (0, database_1.getRepository)().updateChargePaymentMethod(request.params.id, payload.method);
+    const charge = await (0, database_1.getRepository)().updateChargePaymentMethod(id, payload.method);
     if (!charge) {
         response.status(404).json({ message: "Cobranca nao encontrada." });
         return;
@@ -243,6 +249,7 @@ router.patch("/charges/:id/payment-method", asyncHandler(async (request, respons
     response.json(charge);
 }));
 router.post("/notifications/reminder/:appointmentId", asyncHandler(async (request, response) => {
-    const result = await (0, notificationService_1.sendReminder)(request.params.appointmentId);
+    const appointmentId = request.params.appointmentId;
+    const result = await (0, notificationService_1.sendReminder)(appointmentId);
     response.status(result.ok ? 200 : 404).json(result);
 }));
