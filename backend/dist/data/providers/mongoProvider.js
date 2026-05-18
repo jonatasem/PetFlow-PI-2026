@@ -22,6 +22,25 @@ class MongoProvider {
         this.db = this.client.db();
         return this.db;
     }
+    async getAuthUserByEmail(email) {
+        const db = await this.getDb();
+        const row = await db.collection("authUsers").findOne({ email });
+        return row ? stripMongoId(row) : null;
+    }
+    async createAuthUser(input) {
+        const db = await this.getDb();
+        const user = {
+            id: `u${Date.now()}`,
+            name: input.name.trim(),
+            email: input.email.trim().toLowerCase(),
+            passwordHash: input.passwordHash,
+            passwordSalt: input.passwordSalt,
+            role: input.role ?? "admin",
+            createdAt: new Date().toISOString()
+        };
+        await db.collection("authUsers").insertOne(user);
+        return user;
+    }
     async getCustomers() {
         const db = await this.getDb();
         const rows = await db.collection("customers").find().sort({ name: 1 }).toArray();

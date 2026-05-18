@@ -20,6 +20,23 @@ class FirebaseProvider {
             });
         this.db = (0, firestore_1.getFirestore)(app);
     }
+    async getAuthUserByEmail(email) {
+        const snapshot = await this.db.collection("authUsers").where("email", "==", email).limit(1).get();
+        return snapshot.empty ? null : snapshot.docs[0]?.data();
+    }
+    async createAuthUser(input) {
+        const user = {
+            id: `u${Date.now()}`,
+            name: input.name.trim(),
+            email: input.email.trim().toLowerCase(),
+            passwordHash: input.passwordHash,
+            passwordSalt: input.passwordSalt,
+            role: input.role ?? "admin",
+            createdAt: new Date().toISOString()
+        };
+        await this.db.collection("authUsers").doc(user.id).set(user);
+        return user;
+    }
     async getCustomers() {
         const snapshot = await this.db.collection("customers").orderBy("name").get();
         return snapshot.docs.map((doc) => doc.data());

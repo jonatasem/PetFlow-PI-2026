@@ -1,9 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.hashPassword = hashPassword;
+exports.verifyPassword = verifyPassword;
 exports.createAuthToken = createAuthToken;
 exports.verifyAuthToken = verifyAuthToken;
 const node_crypto_1 = require("node:crypto");
+const node_util_1 = require("node:util");
 const env_1 = require("../config/env");
+const scrypt = (0, node_util_1.promisify)(node_crypto_1.scrypt);
+const PASSWORD_KEY_LENGTH = 64;
 function toBase64Url(value) {
     return Buffer.from(value, "utf8").toString("base64url");
 }
@@ -12,6 +17,30 @@ function fromBase64Url(value) {
 }
 function signValue(value) {
     return (0, node_crypto_1.createHmac)("sha256", env_1.env.AUTH_SECRET).update(value).digest("base64url");
+}
+async function derivePasswordKey(password, passwordSalt) {
+    return await scrypt(password, `${passwordSalt}:${env_1.env.AUTH_SECRET}`, PASSWORD_KEY_LENGTH);
+}
+async function hashPassword(password) {
+    const passwordSalt = (0, node_crypto_1.randomBytes)(16).toString("base64url");
+    const derivedKey = await derivePasswordKey(password, passwordSalt);
+    return {
+        passwordHash: derivedKey.toString("base64url"),
+        passwordSalt
+    };
+}
+async function verifyPassword(password, passwordHash, passwordSalt) {
+    try {
+        const derivedKey = await derivePasswordKey(password, passwordSalt);
+        const storedKey = Buffer.from(passwordHash, "base64url");
+        if (storedKey.length !== derivedKey.length) {
+            return false;
+        }
+        return (0, node_crypto_1.timingSafeEqual)(storedKey, derivedKey);
+    }
+    catch {
+        return false;
+    }
 }
 function createAuthToken(payload) {
     const now = Math.floor(Date.now() / 1000);

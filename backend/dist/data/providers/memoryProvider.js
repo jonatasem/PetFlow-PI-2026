@@ -13,6 +13,22 @@ function normalizeText(value) {
     return value?.trim().toLowerCase() ?? "";
 }
 class MemoryProvider {
+    async getAuthUserByEmail(email) {
+        return structuredClone(mockDb_1.authUsers.find((user) => normalizeText(user.email) === normalizeText(email)) ?? null);
+    }
+    async createAuthUser(input) {
+        const user = {
+            id: nextEntityId("u", mockDb_1.authUsers.map((item) => item.id)),
+            name: input.name.trim(),
+            email: input.email.trim().toLowerCase(),
+            passwordHash: input.passwordHash,
+            passwordSalt: input.passwordSalt,
+            role: input.role ?? "admin",
+            createdAt: new Date().toISOString()
+        };
+        mockDb_1.authUsers.push(user);
+        return structuredClone(user);
+    }
     async getCustomers() {
         return structuredClone(mockDb_1.customers);
     }

@@ -24,6 +24,17 @@ function normalizeCharge(row) {
         method: row.method
     };
 }
+function normalizeAuthUser(row) {
+    return {
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        passwordHash: row.passwordHash,
+        passwordSalt: row.passwordSalt,
+        role: row.role,
+        createdAt: new Date(row.createdAt).toISOString()
+    };
+}
 class MySqlProvider {
     pool;
     constructor() {
@@ -34,6 +45,23 @@ class MySqlProvider {
             uri: env_1.env.MYSQL_URL,
             connectionLimit: 10
         });
+    }
+    async getAuthUserByEmail(email) {
+        const [rows] = await this.pool.query("SELECT id, name, email, passwordHash, passwordSalt, role, createdAt FROM auth_users WHERE email = ? LIMIT 1", [email]);
+        return rows[0] ? normalizeAuthUser(rows[0]) : null;
+    }
+    async createAuthUser(input) {
+        const user = {
+            id: `u${Date.now()}`,
+            name: input.name.trim(),
+            email: input.email.trim().toLowerCase(),
+            passwordHash: input.passwordHash,
+            passwordSalt: input.passwordSalt,
+            role: input.role ?? "admin",
+            createdAt: new Date().toISOString()
+        };
+        await this.pool.query("INSERT INTO auth_users (id, name, email, passwordHash, passwordSalt, role, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)", [user.id, user.name, user.email, user.passwordHash, user.passwordSalt, user.role, new Date(user.createdAt)]);
+        return user;
     }
     async getCustomers() {
         const [rows] = await this.pool.query("SELECT id, name, phone, email FROM customers ORDER BY name");

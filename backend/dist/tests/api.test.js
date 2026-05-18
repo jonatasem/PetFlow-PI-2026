@@ -11,20 +11,32 @@ const mockDb_1 = require("../data/mockDb");
 let server;
 let baseUrl;
 let authHeaders;
+const defaultUser = {
+    name: "PetFlow Admin",
+    email: "admin@petflow.com",
+    password: "PetFlow@2026"
+};
 (0, node_test_1.beforeEach)(async () => {
     (0, mockDb_1.resetMockDb)();
     server = app_1.app.listen(0);
     await (0, node_events_1.once)(server, "listening");
     const address = server.address();
     baseUrl = `http://127.0.0.1:${address.port}/api`;
+    await request("/auth/register", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(defaultUser)
+    });
     const loginResponse = await request("/auth/login", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            email: "admin@brisapet.com",
-            password: "petshop123"
+            email: defaultUser.email,
+            password: defaultUser.password
         })
     });
     authHeaders = {
@@ -66,20 +78,64 @@ async function protectedRequest(path, init) {
         strict_1.default.equal(body.status, "ok");
         strict_1.default.equal(body.databaseProvider, "memory");
     });
-    (0, node_test_1.it)("realiza login com as credenciais demo", async () => {
+    (0, node_test_1.it)("cadastra uma nova conta com senha forte", async () => {
+        const { response, body } = await request("/auth/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: "Maria Gestora",
+                email: "maria@petflow.com",
+                password: "Maria@2026Segura"
+            })
+        });
+        strict_1.default.equal(response.status, 201);
+        strict_1.default.equal(body.email, "maria@petflow.com");
+        strict_1.default.equal(body.name, "Maria Gestora");
+        strict_1.default.equal(body.role, "admin");
+    });
+    (0, node_test_1.it)("bloqueia cadastro com email ja utilizado", async () => {
+        const { response, body } = await request("/auth/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(defaultUser)
+        });
+        strict_1.default.equal(response.status, 409);
+        strict_1.default.equal(body.message, "Ja existe uma conta cadastrada com este email.");
+    });
+    (0, node_test_1.it)("bloqueia cadastro com senha fraca", async () => {
+        const { response, body } = await request("/auth/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: "Joao Fraco",
+                email: "joao@petflow.com",
+                password: "123456"
+            })
+        });
+        strict_1.default.equal(response.status, 400);
+        strict_1.default.equal(body.message, "Dados invalidos na requisicao.");
+        strict_1.default.ok(Array.isArray(body.issues));
+    });
+    (0, node_test_1.it)("realiza login com usuario cadastrado", async () => {
         const { response, body } = await request("/auth/login", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                email: "admin@brisapet.com",
-                password: "petshop123"
+                email: defaultUser.email,
+                password: defaultUser.password
             })
         });
         strict_1.default.equal(response.status, 200);
-        strict_1.default.equal(body.email, "admin@brisapet.com");
-        strict_1.default.equal(body.name, "Gestor Brisa Pet");
+        strict_1.default.equal(body.email, defaultUser.email);
+        strict_1.default.equal(body.name, defaultUser.name);
         strict_1.default.equal(body.role, "admin");
         strict_1.default.ok(body.token);
     });
@@ -90,7 +146,7 @@ async function protectedRequest(path, init) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                email: "admin@brisapet.com",
+                email: defaultUser.email,
                 password: "senha-errada"
             })
         });

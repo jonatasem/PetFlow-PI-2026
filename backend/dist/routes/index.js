@@ -49,6 +49,30 @@ const loginSchema = zod_1.z.object({
     email: zod_1.z.string().trim().email(),
     password: zod_1.z.string().min(1)
 });
+const registerPasswordSchema = zod_1.z
+    .string()
+    .min(10, "A senha deve ter pelo menos 10 caracteres.")
+    .max(128, "A senha deve ter no maximo 128 caracteres.")
+    .regex(/[a-z]/, "A senha deve conter ao menos uma letra minuscula.")
+    .regex(/[A-Z]/, "A senha deve conter ao menos uma letra maiuscula.")
+    .regex(/[0-9]/, "A senha deve conter ao menos um numero.")
+    .regex(/[^A-Za-z0-9]/, "A senha deve conter ao menos um caractere especial.")
+    .refine((value) => value.trim() === value, {
+    message: "A senha nao pode comecar ou terminar com espacos."
+});
+const registerSchema = zod_1.z.object({
+    name: zod_1.z.string().trim().min(3).max(80),
+    email: zod_1.z.string().trim().email().max(160),
+    password: registerPasswordSchema
+});
+function normalizeEmailAddress(email) {
+    return email.trim().toLowerCase();
+}
+function asyncHandler(handler) {
+    return (request, response, next) => {
+        void handler(request, response, next).catch(next);
+    };
+}
 async function buildAppointmentViews() {
     const repository = (0, database_1.getRepository)();
     const [appointments, customers, pets, services] = await Promise.all([
@@ -87,77 +111,103 @@ router.get("/health", (_request, response) => {
         whatsappConfigured: Boolean(env_1.env.WHATSAPP_TOKEN && env_1.env.WHATSAPP_PHONE_ID)
     });
 });
-router.post("/auth/login", (request, response) => {
+router.post("/auth/register", asyncHandler(async (request, response) => {
+    const payload = registerSchema.parse(request.body);
+    const normalizedEmail = normalizeEmailAddress(payload.email);
+    const repository = (0, database_1.getRepository)();
+    const existingUser = await repository.getAuthUserByEmail(normalizedEmail);
+    if (existingUser) {
+        response.status(409).json({ message: "Ja existe uma conta cadastrada com este email." });
+        return;
+    }
+    const { passwordHash, passwordSalt } = await (0, authService_1.hashPassword)(payload.password);
+    const user = await repository.createAuthUser({
+        name: payload.name.trim().replace(/\s+/g, " "),
+        email: normalizedEmail,
+        passwordHash,
+        passwordSalt,
+        role: "admin"
+    });
+    response.status(201).json({
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        createdAt: user.createdAt,
+        message: "Cadastro realizado com sucesso. Faca login para continuar."
+    });
+}));
+router.post("/auth/login", asyncHandler(async (request, response) => {
     const payload = loginSchema.parse(request.body);
-    const normalizedEmail = payload.email.toLowerCase();
-    if (normalizedEmail !== env_1.env.ADMIN_EMAIL.toLowerCase() || payload.password !== env_1.env.ADMIN_PASSWORD) {
+    const normalizedEmail = normalizeEmailAddress(payload.email);
+    const user = await (0, database_1.getRepository)().getAuthUserByEmail(normalizedEmail);
+    if (!user || !(await (0, authService_1.verifyPassword)(payload.password, user.passwordHash, user.passwordSalt))) {
         response.status(401).json({ message: "Email ou senha invalidos." });
         return;
     }
     const session = (0, authService_1.createAuthToken)({
-        email: env_1.env.ADMIN_EMAIL,
-        name: env_1.env.ADMIN_NAME,
-        role: "admin"
+        email: user.email,
+        name: user.name,
+        role: user.role
     });
     response.json({
         token: session.token,
-        email: env_1.env.ADMIN_EMAIL,
-        name: env_1.env.ADMIN_NAME,
-        role: "admin",
+        email: user.email,
+        name: user.name,
+        role: user.role,
         expiresAt: session.expiresAt
     });
-});
+}));
 router.use(authenticateRequest);
-router.get("/dashboard", async (_request, response) => {
+router.get("/dashboard", asyncHandler(async (_request, response) => {
     response.json(await (0, dashboardService_1.getDashboardSnapshot)());
-});
-router.get("/customers", async (_request, response) => {
+}));
+router.get("/customers", asyncHandler(async (_request, response) => {
     response.json(await (0, database_1.getRepository)().getCustomers());
-});
-router.get("/pets", async (_request, response) => {
+}));
+router.get("/pets", asyncHandler(async (_request, response) => {
     const repository = (0, database_1.getRepository)();
     const [pets, customers] = await Promise.all([repository.getPets(), repository.getCustomers()]);
     response.json(pets.map((pet) => ({
         ...pet,
         customer: customers.find((customer) => customer.id === pet.customerId)
     })));
-});
-router.get("/services", async (_request, response) => {
+}));
+router.get("/services", asyncHandler(async (_request, response) => {
     response.json(await (0, database_1.getRepository)().getServices());
-});
-router.get("/appointments", async (_request, response) => {
+}));
+router.get("/appointments", asyncHandler(async (_request, response) => {
     response.json(await buildAppointmentViews());
-});
-router.post("/appointments", async (request, response) => {
+}));
+router.post("/appointments", asyncHandler(async (request, response) => {
     const payload = appointmentSchema.parse(request.body);
     const appointment = await (0, database_1.getRepository)().createAppointment(payload);
     response.status(201).json(appointment);
-});
-router.delete("/appointments/:id", async (request, response) => {
+}));
+router.delete("/appointments/:id", asyncHandler(async (request, response) => {
     const deleted = await (0, database_1.getRepository)().deleteAppointment(request.params.id);
     if (!deleted) {
         response.status(404).json({ message: "Agendamento nao encontrado." });
         return;
     }
     response.status(204).send();
-});
-router.patch("/appointments/:id/remove-from-queue", async (request, response) => {
+}));
+router.patch("/appointments/:id/remove-from-queue", asyncHandler(async (request, response) => {
     const hidden = await (0, database_1.getRepository)().removeAppointmentFromQueue(request.params.id);
     if (!hidden) {
         response.status(404).json({ message: "Agendamento nao encontrado." });
         return;
     }
     response.status(204).send();
-});
-router.patch("/appointments/:id/restore-to-queue", async (request, response) => {
+}));
+router.patch("/appointments/:id/restore-to-queue", asyncHandler(async (request, response) => {
     const restored = await (0, database_1.getRepository)().restoreAppointmentToQueue(request.params.id);
     if (!restored) {
         response.status(404).json({ message: "Agendamento nao encontrado." });
         return;
     }
     response.status(204).send();
-});
-router.patch("/appointments/:id/status", async (request, response) => {
+}));
+router.patch("/appointments/:id/status", asyncHandler(async (request, response) => {
     const payload = statusSchema.parse(request.body);
     const appointment = await (0, database_1.getRepository)().updateAppointmentStatus(request.params.id, payload.status);
     if (!appointment) {
@@ -165,16 +215,16 @@ router.patch("/appointments/:id/status", async (request, response) => {
         return;
     }
     response.json(appointment);
-});
-router.get("/charges", async (_request, response) => {
+}));
+router.get("/charges", asyncHandler(async (_request, response) => {
     const repository = (0, database_1.getRepository)();
     const [charges, appointments] = await Promise.all([repository.getCharges(), repository.getAppointments()]);
     response.json(charges.map((charge) => ({
         ...charge,
         appointment: appointments.find((appointment) => appointment.id === charge.appointmentId)
     })));
-});
-router.patch("/charges/:id/payment-status", async (request, response) => {
+}));
+router.patch("/charges/:id/payment-status", asyncHandler(async (request, response) => {
     const payload = chargePaymentSchema.parse(request.body);
     const charge = await (0, database_1.getRepository)().updateChargePaymentStatus(request.params.id, payload.paid);
     if (!charge) {
@@ -182,8 +232,8 @@ router.patch("/charges/:id/payment-status", async (request, response) => {
         return;
     }
     response.json(charge);
-});
-router.patch("/charges/:id/payment-method", async (request, response) => {
+}));
+router.patch("/charges/:id/payment-method", asyncHandler(async (request, response) => {
     const payload = chargeMethodSchema.parse(request.body);
     const charge = await (0, database_1.getRepository)().updateChargePaymentMethod(request.params.id, payload.method);
     if (!charge) {
@@ -191,8 +241,8 @@ router.patch("/charges/:id/payment-method", async (request, response) => {
         return;
     }
     response.json(charge);
-});
-router.post("/notifications/reminder/:appointmentId", async (request, response) => {
+}));
+router.post("/notifications/reminder/:appointmentId", asyncHandler(async (request, response) => {
     const result = await (0, notificationService_1.sendReminder)(request.params.appointmentId);
     response.status(result.ok ? 200 : 404).json(result);
-});
+}));

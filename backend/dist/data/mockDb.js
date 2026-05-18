@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.charges = exports.appointments = exports.services = exports.pets = exports.customers = void 0;
+exports.authUsers = exports.charges = exports.appointments = exports.services = exports.pets = exports.customers = void 0;
 exports.resetMockDb = resetMockDb;
 const seedCustomers = [
     {
@@ -157,15 +157,18 @@ const seedCharges = [
         method: "dinheiro"
     }
 ];
+const seedAuthUsers = [];
 exports.customers = structuredClone(seedCustomers);
 exports.pets = structuredClone(seedPets);
 exports.services = structuredClone(seedServices);
 exports.appointments = structuredClone(seedAppointments);
 exports.charges = structuredClone(seedCharges);
+exports.authUsers = structuredClone(seedAuthUsers);
 function resetMockDb() {
     exports.customers.splice(0, exports.customers.length, ...structuredClone(seedCustomers));
     exports.pets.splice(0, exports.pets.length, ...structuredClone(seedPets));
     exports.services.splice(0, exports.services.length, ...structuredClone(seedServices));
     exports.appointments.splice(0, exports.appointments.length, ...structuredClone(seedAppointments));
     exports.charges.splice(0, exports.charges.length, ...structuredClone(seedCharges));
+    exports.authUsers.splice(0, exports.authUsers.length, ...structuredClone(seedAuthUsers));
 }
